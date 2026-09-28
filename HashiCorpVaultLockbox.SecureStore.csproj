@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Matches the official UiPath samples: ensures dependencies (Newtonsoft.Json) are copied to
+         the output folder so the deployable set is complete. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AssemblyName>UiPath.Orchestrator.Extensions.SecureStores.HashiCorpVaultLockbox</AssemblyName>
+    <RootNamespace>UiPath.Orchestrator.Extensions.SecureStores.HashiCorpVaultLockbox</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Version>1.0.0</Version>
+    <Product>HashiCorp Vault (Lockbox AD) credential store for the UiPath Disconnected Credentials Proxy</Product>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Keeps the nested tools/Harness project out of this assembly's default item globs. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tools/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Stage the deployment artefacts next to the DLL so bin/Release is a self-contained
+         hand-off folder. Link flattens them out of samples/ into the output root.
+         These are MERGE fragments, not drop-in replacements - see DEPLOY.txt. -->
+    <None Update="samples/appsettings.Production.merge.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>appsettings.Production.merge.json</Link>
+    </None>
+    <None Update="samples/appsettings.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>appsettings.Production.json</Link>
+    </None>
+    <None Update="samples/DEPLOY.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>DEPLOY.txt</Link>
+    </None>
+  </ItemGroup>
+
+  <Target Name="DeployBanner" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Message Importance="high" Text=" " />
+    <Message Importance="high" Text="Staged for deployment in $(OutputPath)" />
+    <Message Importance="high" Text="  - $(AssemblyName).dll                 -> proxy plugins\ folder" />
+    <Message Importance="high" Text="  - appsettings.Production.merge.json    -> MERGE into the proxy config" />
+    <Message Importance="high" Text="  - DEPLOY.txt                           -> step-by-step, incl. rollback" />
+    <Message Importance="high" Text="Do NOT overwrite the proxy's appsettings.Production.json; merge into it." />
+    <Message Importance="high" Text=" " />
+  </Target>
+
+  <ItemGroup>
+    <!-- tools/Harness is a separate project nested inside this folder. The SDK's default glob is
+         **/*.cs, which would otherwise pull the harness's sources and its generated AssemblyInfo.cs
+         into this assembly - producing CS8805 (top-level statements in a library) or CS0579
+         (duplicate assembly attributes) depending on build order. -->
+    <Compile Remove="tools/**" />
+    <None Remove="tools/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Supplies ISecureStore, SecureStoreInfo, ConfigurationEntry/ConfigurationValue,
+         ConfigurationValueType, Credential and SecureStoreException.
+         1.0.4 is the version used by the UiPath sample repo. If the Extensibility assembly shipped with
+         your Orchestrator / Credentials Proxy build is newer, bump this to match it. -->
+    <PackageReference Include="UiPath.Orchestrator.Extensibility" Version="1.0.4" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
